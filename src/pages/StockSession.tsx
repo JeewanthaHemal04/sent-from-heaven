@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
@@ -23,7 +23,18 @@ export function StockSessionPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [direction, setDirection] = useState(1)
   const [showReview, setShowReview] = useState(false)
+  const [viewInitialized, setViewInitialized] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!sessionData || viewInitialized) return
+    const countedIds = new Set(sessionData.counts.map((c) => c.productId.toString()))
+    const allCounted = sessionData.products.every((p) => countedIds.has(p._id.toString()))
+    if (allCounted) {
+      setShowReview(true)
+    }
+    setViewInitialized(true)
+  }, [sessionData, viewInitialized])
 
   const handleSaveAndNext = useCallback(
     async (quantity: number) => {
@@ -125,10 +136,7 @@ export function StockSessionPage() {
     ? countsMap.get(currentProduct._id.toString())
     : undefined
 
-  // Check if all products are counted and we should show review
-  const allCounted = products.every((p) => countsMap.has(p._id.toString()))
-
-  if (showReview || allCounted) {
+  if (showReview) {
     return (
       <SessionReview
         products={products}
