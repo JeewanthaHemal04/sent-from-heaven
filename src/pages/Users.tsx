@@ -101,7 +101,7 @@ export function UsersPage() {
       {/* Instruction */}
       <div className="mt-6 p-4 rounded-xl bg-surface-elevated border border-surface-border text-xs text-ink-tertiary leading-relaxed">
         <strong className="text-ink-secondary">How to add a user:</strong> Add their email and role here,
-        then have them sign up at the login page using that email. They&apos;ll be assigned the role you set.
+        then have them open /set-password and create a password using that same email. They&apos;ll be assigned the role you set.
         If they sign up before being added, they&apos;ll appear as an inactive Worker — activate them here.
       </div>
 

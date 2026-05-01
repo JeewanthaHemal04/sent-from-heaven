@@ -1,23 +1,23 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { useConvexAuth } from 'convex/react'
-import { useEffect } from 'react'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export function LoginPage() {
+export function SetPasswordPage() {
   const { signIn } = useAuthActions()
   const { isAuthenticated } = useConvexAuth()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Already logged in → redirect
   useEffect(() => {
     if (isAuthenticated) {
       void navigate({ to: '/' })
@@ -27,11 +27,22 @@ export function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+
     setIsLoading(true)
     try {
-      await signIn('password', { email, password, flow: 'signIn' })
+      await signIn('password', { email, password, flow: 'signUp' })
     } catch {
-      setError('Invalid email or password. Please try again.')
+      setError('Could not set password for this email. Please contact the owner.')
     } finally {
       setIsLoading(false)
     }
@@ -48,7 +59,6 @@ export function LoginPage() {
         ].join(', '),
       }}
     >
-      {/* Decorative circles */}
       <div
         className="absolute top-[-120px] left-[-120px] w-80 h-80 rounded-full opacity-30"
         style={{ background: 'radial-gradient(circle, rgba(224,92,58,0.2) 0%, transparent 70%)' }}
@@ -60,7 +70,6 @@ export function LoginPage() {
         aria-hidden
       />
 
-      {/* Brand mark */}
       <div className="text-center mb-8 relative z-10">
         <div
           className="font-display text-6xl text-coral-500 leading-none mb-2"
@@ -73,7 +82,6 @@ export function LoginPage() {
         </p>
       </div>
 
-      {/* Login card */}
       <div
         className="relative z-10 w-full max-w-[360px] rounded-2xl border border-surface-border p-8"
         style={{
@@ -82,9 +90,9 @@ export function LoginPage() {
           boxShadow: '0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
         }}
       >
-        <h1 className="text-lg font-semibold text-ink-primary mb-1">Sign in</h1>
+        <h1 className="text-lg font-semibold text-ink-primary mb-1">Set your password</h1>
         <p className="text-sm text-ink-tertiary mb-6">
-          Access your inventory dashboard
+          Use the same email the owner added on the Users page
         </p>
 
         {error && (
@@ -94,7 +102,6 @@ export function LoginPage() {
         )}
 
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
-          {/* Email */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-ink-secondary uppercase tracking-wider">
               Email
@@ -119,10 +126,9 @@ export function LoginPage() {
             </div>
           </div>
 
-          {/* Password */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-ink-secondary uppercase tracking-wider">
-              Password
+              New Password
             </label>
             <div className="relative">
               <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-tertiary pointer-events-none" />
@@ -130,8 +136,8 @@ export function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
+                placeholder="Minimum 8 characters"
+                autoComplete="new-password"
                 required
                 className={cn(
                   'w-full pl-9 pr-10 py-2.5 rounded-xl text-sm',
@@ -152,9 +158,41 @@ export function LoginPage() {
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-ink-secondary uppercase tracking-wider">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-tertiary pointer-events-none" />
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter password"
+                autoComplete="new-password"
+                required
+                className={cn(
+                  'w-full pl-9 pr-10 py-2.5 rounded-xl text-sm',
+                  'bg-surface-bg border border-surface-border',
+                  'text-ink-primary placeholder:text-ink-tertiary/60',
+                  'focus:outline-none focus:border-coral-500 focus:ring-1 focus:ring-coral-500/20',
+                  'transition-colors'
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-tertiary hover:text-ink-secondary transition-colors"
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              >
+                {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+
           <button
             type="submit"
-            disabled={isLoading || !email || !password}
+            disabled={isLoading || !email || !password || !confirmPassword}
             className={cn(
               'w-full mt-2 py-3 rounded-xl font-semibold text-sm transition-all duration-200',
               'focus:outline-none focus:ring-2 focus:ring-coral-500/40',
@@ -166,26 +204,21 @@ export function LoginPage() {
             {isLoading ? (
               <span className="inline-flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Signing in…
+                Setting password...
               </span>
             ) : (
-              'Sign In'
+              'Set Password'
             )}
           </button>
         </form>
 
         <p className="text-center text-xs text-ink-tertiary mt-6">
-          Invited by the owner?{' '}
-          <Link to="/set-password" className="text-coral-400 hover:text-coral-300 underline underline-offset-2">
-            Set your password
+          Already have an account?{' '}
+          <Link to="/login" className="text-coral-400 hover:text-coral-300 underline underline-offset-2">
+            Sign in
           </Link>
         </p>
       </div>
-
-      {/* Footer */}
-      <p className="mt-8 text-xs text-ink-tertiary/50 relative z-10">
-        Perera &amp; Sons Franchise · Sri Lanka
-      </p>
     </div>
   )
 }

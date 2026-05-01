@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LoginPage } from '@/pages/Login'
+import { SetPasswordPage } from '@/pages/SetPassword'
 import { DashboardPage } from '@/pages/Dashboard'
 import { StockTakingPage } from '@/pages/StockTaking'
 import { StockSessionPage } from '@/pages/StockSession'
@@ -27,6 +28,12 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   component: LoginPage,
+})
+
+const setPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/set-password',
+  component: SetPasswordPage,
 })
 
 // ── Protected layout ──────────────────────────────────────────────────────
@@ -91,6 +98,7 @@ const usersRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  setPasswordRoute,
   appRoute.addChildren([
     indexRoute,
     dashboardRoute,
