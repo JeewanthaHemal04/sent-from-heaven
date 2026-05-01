@@ -228,12 +228,12 @@ function AddMovementModal({ open, onClose, defaultDate }: AddMovementModalProps)
         {/* Type selector */}
         <div>
           <label className="text-xs font-medium text-ink-secondary uppercase tracking-wider block mb-2">Type</label>
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
             {ALL_TYPES.map((t) => (
               <button
                 key={t}
                 onClick={() => setType(t)}
-                className={`py-2 px-1 rounded-lg text-[11px] font-medium transition-colors ${
+                className={`py-2 px-1 rounded-lg text-[11px] font-medium text-center leading-tight transition-colors ${
                   type === t
                     ? 'bg-coral-500 text-white'
                     : 'bg-surface-elevated border border-surface-border text-ink-secondary hover:text-ink-primary'
@@ -275,7 +275,7 @@ function AddMovementModal({ open, onClose, defaultDate }: AddMovementModalProps)
           <label className="text-xs font-medium text-ink-secondary uppercase tracking-wider block mb-2">Items</label>
           <div className="space-y-2">
             {items.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2">
+              <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <select
                   value={item.productId}
                   onChange={(e) => {
@@ -283,7 +283,7 @@ function AddMovementModal({ open, onClose, defaultDate }: AddMovementModalProps)
                     next[idx] = { ...next[idx], productId: e.target.value }
                     setItems(next)
                   }}
-                  className="flex-1 bg-surface-bg border border-surface-border rounded-lg px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-coral-500"
+                  className="flex-1 bg-surface-bg border border-surface-border rounded-lg px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-coral-500"
                 >
                   <option value="">Select product…</option>
                   {products?.map((p) => (
@@ -292,26 +292,29 @@ function AddMovementModal({ open, onClose, defaultDate }: AddMovementModalProps)
                     </option>
                   ))}
                 </select>
-                <input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(e) => {
-                    const next = [...items]
-                    next[idx] = { ...next[idx], quantity: e.target.value }
-                    setItems(next)
-                  }}
-                  placeholder="Qty"
-                  className="w-20 bg-surface-bg border border-surface-border rounded-lg px-3 py-2 text-sm text-ink-primary focus:outline-none focus:border-coral-500"
-                />
-                {items.length > 1 && (
-                  <button
-                    onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                    className="p-2 text-ink-tertiary hover:text-rose transition-colors"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    inputMode="numeric"
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const next = [...items]
+                      next[idx] = { ...next[idx], quantity: e.target.value }
+                      setItems(next)
+                    }}
+                    placeholder="Qty"
+                    className="flex-1 sm:w-20 sm:flex-none bg-surface-bg border border-surface-border rounded-lg px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-coral-500"
+                  />
+                  {items.length > 1 && (
+                    <button
+                      onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                      className="p-2 text-ink-tertiary hover:text-rose transition-colors shrink-0"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
             <button

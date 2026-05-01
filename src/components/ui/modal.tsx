@@ -57,7 +57,7 @@ export function Modal({ open, onClose, title, children, className, size = 'md' }
       <div
         className={cn(
           'relative w-full bg-surface-card border border-surface-border rounded-2xl shadow-elevated',
-          'flex flex-col max-h-[90vh] overflow-hidden',
+          'flex flex-col max-h-[85dvh] overflow-hidden',
           sizeClasses[size],
           className
         )}
@@ -74,7 +74,10 @@ export function Modal({ open, onClose, title, children, className, size = 'md' }
             </button>
           </div>
         )}
-        <div className="overflow-y-auto flex-1 p-6">{children}</div>
+        <div
+          className="overflow-y-auto flex-1 p-6"
+          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        >{children}</div>
       </div>
     </div>
   )

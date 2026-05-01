@@ -140,7 +140,7 @@ export function DailySummaryPage() {
             </label>
             <div className="space-y-2">
               {deliveryApps.map((app, idx) => (
-                <div key={idx} className="flex items-center gap-2">
+                <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
                     type="text"
                     value={app.name}
@@ -150,28 +150,31 @@ export function DailySummaryPage() {
                       setDeliveryApps(next)
                     }}
                     placeholder="App name"
-                    className="w-32 bg-surface-bg border border-surface-border rounded-lg px-2.5 py-2 text-sm text-ink-primary focus:outline-none focus:border-coral-500"
+                    className="w-full sm:w-32 bg-surface-bg border border-surface-border rounded-lg px-2.5 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-coral-500"
                   />
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={app.amount}
-                    onChange={(e) => {
-                      const next = [...deliveryApps]
-                      next[idx] = { ...next[idx], amount: e.target.value }
-                      setDeliveryApps(next)
-                    }}
-                    placeholder="0.00"
-                    className="flex-1 bg-surface-bg border border-surface-border rounded-lg px-2.5 py-2 text-sm text-ink-primary focus:outline-none focus:border-coral-500"
-                  />
-                  <button
-                    onClick={() => setDeliveryApps(deliveryApps.filter((_, i) => i !== idx))}
-                    className="p-2 text-ink-tertiary hover:text-rose transition-colors"
-                    aria-label="Remove"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={app.amount}
+                      onChange={(e) => {
+                        const next = [...deliveryApps]
+                        next[idx] = { ...next[idx], amount: e.target.value }
+                        setDeliveryApps(next)
+                      }}
+                      placeholder="0.00"
+                      className="flex-1 bg-surface-bg border border-surface-border rounded-lg px-2.5 py-2.5 text-sm text-ink-primary focus:outline-none focus:border-coral-500"
+                    />
+                    <button
+                      onClick={() => setDeliveryApps(deliveryApps.filter((_, i) => i !== idx))}
+                      className="p-2 text-ink-tertiary hover:text-rose transition-colors shrink-0"
+                      aria-label="Remove"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
               <button
