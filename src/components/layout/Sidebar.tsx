@@ -66,6 +66,21 @@ function NavItemLink({ item }: { item: NavItem }) {
   )
 }
 
+// ── Mobile top header bar ───────────────────────────────────────────────────
+export function MobileHeader() {
+  return (
+    <header
+      className="lg:hidden shrink-0 bg-surface-raised border-b border-surface-border flex items-end px-5 pb-3"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
+    >
+      <div className="flex items-baseline gap-2">
+        <span className="font-display italic text-xl text-coral-500">P&S</span>
+        <span className="text-[10px] text-ink-tertiary uppercase tracking-widest">Inventory</span>
+      </div>
+    </header>
+  )
+}
+
 // ── Desktop sidebar ─────────────────────────────────────────────────────────
 export function Sidebar() {
   const user = useCurrentUser()

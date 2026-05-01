@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useConvexAuth } from 'convex/react'
-import { Sidebar, MobileNav } from './Sidebar'
+import { Sidebar, MobileHeader, MobileNav } from './Sidebar'
 import { FullPageSpinner } from '@/components/ui/spinner'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 
@@ -43,9 +43,12 @@ export function AppLayout() {
   return (
     <div className="flex h-dvh overflow-hidden bg-surface-bg">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto pb-16 lg:pb-0">
-        <Outlet />
-      </main>
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <MobileHeader />
+        <main className="flex-1 overflow-y-auto pb-16 lg:pb-0">
+          <Outlet />
+        </main>
+      </div>
       <MobileNav />
     </div>
   )
