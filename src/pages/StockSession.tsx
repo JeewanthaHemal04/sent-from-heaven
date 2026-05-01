@@ -30,9 +30,19 @@ export function StockSessionPage() {
     if (!sessionData || viewInitialized) return
     const countedIds = new Set(sessionData.counts.map((c) => c.productId.toString()))
     const allCounted = sessionData.products.every((p) => countedIds.has(p._id.toString()))
+
     if (allCounted) {
+      // If everything is counted, show review
       setShowReview(true)
+    } else {
+      // Jump to first uncounted product so user resumes where they left off
+      const firstUncounted = sessionData.products.findIndex((p) => !countedIds.has(p._id.toString()))
+      if (firstUncounted >= 0) {
+        setCurrentIndex(firstUncounted)
+        setDirection(1)
+      }
     }
+
     setViewInitialized(true)
   }, [sessionData, viewInitialized])
 
