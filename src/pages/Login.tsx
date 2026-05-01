@@ -13,7 +13,6 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,18 +27,11 @@ export function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-
-    if (mode === 'signUp' && password.length < 8) {
-      setError('Password must be at least 8 characters long.')
-      return
-    }
-
     setIsLoading(true)
     try {
-      await signIn('password', { email, password, flow: mode })
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Authentication failed. Please try again.')
-      console.error('Authentication failed', error)
+      await signIn('password', { email, password, flow: 'signIn' })
+    } catch {
+      setError('Invalid email or password. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -90,13 +82,9 @@ export function LoginPage() {
           boxShadow: '0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
         }}
       >
-        <h1 className="text-lg font-semibold text-ink-primary mb-1">
-          {mode === 'signIn' ? 'Sign in' : 'Create account'}
-        </h1>
+        <h1 className="text-lg font-semibold text-ink-primary mb-1">Sign in</h1>
         <p className="text-sm text-ink-tertiary mb-6">
-          {mode === 'signIn'
-            ? 'Access your inventory dashboard'
-            : 'Create the first owner account or invite a new user'}
+          Access your inventory dashboard
         </p>
 
         {error && (
@@ -129,11 +117,6 @@ export function LoginPage() {
                 )}
               />
             </div>
-            {mode === 'signUp' && (
-              <p className="text-[11px] text-ink-tertiary">
-                Passwords must be at least 8 characters long.
-              </p>
-            )}
           </div>
 
           {/* Password */}
@@ -183,26 +166,13 @@ export function LoginPage() {
             {isLoading ? (
               <span className="inline-flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                {mode === 'signIn' ? 'Signing in…' : 'Creating account…'}
+                Signing in…
               </span>
             ) : (
-              mode === 'signIn' ? 'Sign In' : 'Create Account'
+              'Sign In'
             )}
           </button>
         </form>
-
-        <button
-          type="button"
-          onClick={() => {
-            setError(null)
-            setMode(mode === 'signIn' ? 'signUp' : 'signIn')
-          }}
-          className="mt-4 text-xs text-ink-tertiary hover:text-ink-secondary transition-colors"
-        >
-          {mode === 'signIn'
-            ? 'Need the first admin account? Switch to create account.'
-            : 'Already have an account? Switch to sign in.'}
-        </button>
 
         <p className="text-center text-xs text-ink-tertiary mt-6">
           Don&apos;t have an account? Ask the owner to set one up for you.
