@@ -100,8 +100,8 @@ export function DashboardPage() {
 
       {/* Variance section */}
       <div className="rounded-2xl border border-surface-border overflow-hidden">
-        <div className="px-5 py-4 border-b border-surface-border flex items-center justify-between">
-          <div>
+        <div className="px-5 py-4 border-b border-surface-border flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
             <h2 className="font-semibold text-ink-primary">Variance Analysis</h2>
             <p className="text-xs text-ink-secondary mt-0.5">
               Compare actual vs expected stock — negative variance = potential shortage
@@ -111,7 +111,7 @@ export function DashboardPage() {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="text-sm bg-surface-elevated border border-surface-border rounded-lg px-3 py-1.5 text-ink-primary focus:outline-none focus:border-coral-500"
+            className="text-sm bg-surface-elevated border border-surface-border rounded-lg px-3 py-1.5 text-ink-primary focus:outline-none focus:border-coral-500 w-full sm:w-auto"
           />
         </div>
 
@@ -130,7 +130,7 @@ export function DashboardPage() {
         ) : (
           <>
             {/* Summary bar */}
-            <div className="px-5 py-3 bg-surface-raised border-b border-surface-border flex items-center gap-4 text-xs flex-wrap">
+            <div className="px-5 py-3 bg-surface-raised border-b border-surface-border flex items-center gap-3 text-xs flex-wrap">
               <span className="text-ink-secondary">
                 {variance.summary.totalProducts} products
               </span>
@@ -146,8 +146,8 @@ export function DashboardPage() {
                   {variance.summary.totalExcess} excess
                 </span>
               )}
-              <span className="text-ink-tertiary ml-auto">
-                Financial impact:{' '}
+              <span className="text-ink-tertiary sm:ml-auto">
+                Impact:{' '}
                 <span
                   className={
                     variance.summary.totalFinancialImpact < 0 ? 'text-rose' : 'text-emerald'

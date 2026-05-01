@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import {
   LayoutDashboard,
@@ -8,6 +9,8 @@ import {
   Users,
   LogOut,
   CupSoda,
+  Menu,
+  X,
 } from 'lucide-react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { cn } from '@/lib/utils'
@@ -21,20 +24,24 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['owner', 'manager'] },
-  { to: '/stock-taking', icon: ClipboardList, label: 'Stock Taking', roles: ['owner', 'manager', 'worker'] },
-  { to: '/movements', icon: ArrowLeftRight, label: 'Movements', roles: ['owner', 'manager'] },
-  { to: '/daily-summary', icon: CalendarCheck, label: 'Daily Summary', roles: ['owner', 'manager'] },
-  { to: '/vending-machine', icon: CupSoda, label: 'Vending Machine', roles: ['owner', 'manager'] },
-  { to: '/products', icon: Package, label: 'Products', roles: ['owner'] },
-  { to: '/users', icon: Users, label: 'Users', roles: ['owner'] },
+  { to: '/dashboard',       icon: LayoutDashboard, label: 'Dashboard',      roles: ['owner', 'manager'] },
+  { to: '/stock-taking',    icon: ClipboardList,   label: 'Stock Taking',   roles: ['owner', 'manager', 'worker'] },
+  { to: '/movements',       icon: ArrowLeftRight,  label: 'Movements',      roles: ['owner', 'manager'] },
+  { to: '/daily-summary',   icon: CalendarCheck,   label: 'Daily Summary',  roles: ['owner', 'manager'] },
+  { to: '/vending-machine', icon: CupSoda,         label: 'Vending Machine',roles: ['owner', 'manager'] },
+  { to: '/products',        icon: Package,         label: 'Products',       roles: ['owner'] },
+  { to: '/users',           icon: Users,           label: 'Users',          roles: ['owner'] },
 ]
+
+// Max items shown in the bottom bar before "More" appears
+const MOBILE_PRIMARY = 4
 
 function useIsActive(path: string) {
   const { location } = useRouterState()
   return location.pathname === path || location.pathname.startsWith(path + '/')
 }
 
+// ── Desktop sidebar nav item ────────────────────────────────────────────────
 function NavItemLink({ item }: { item: NavItem }) {
   const isActive = useIsActive(item.to)
   return (
@@ -59,6 +66,7 @@ function NavItemLink({ item }: { item: NavItem }) {
   )
 }
 
+// ── Desktop sidebar ─────────────────────────────────────────────────────────
 export function Sidebar() {
   const user = useCurrentUser()
   const { signOut } = useAuthActions()
@@ -104,37 +112,165 @@ export function Sidebar() {
   )
 }
 
-/** Bottom navigation for mobile */
-function MobileNavItem({ item }: { item: NavItem }) {
+// ── Mobile: bottom bar item ─────────────────────────────────────────────────
+function MobileNavItem({ item, onPress }: { item: NavItem; onPress?: () => void }) {
   const isActive = useIsActive(item.to)
   return (
     <Link
       to={item.to}
+      onClick={onPress}
       className={cn(
-        'flex-1 flex flex-col items-center justify-center py-2.5 gap-1 text-[10px] transition-colors',
+        'flex-1 flex flex-col items-center justify-center py-2 gap-1 transition-colors min-w-0',
         isActive ? 'text-coral-400' : 'text-ink-tertiary'
       )}
     >
-      <item.icon size={20} />
-      <span className="font-medium">{item.label}</span>
+      <div className={cn(
+        'relative flex items-center justify-center w-10 h-7 rounded-xl transition-colors',
+        isActive ? 'bg-coral-500/15' : ''
+      )}>
+        <item.icon size={19} />
+      </div>
+      <span className="text-[10px] font-medium leading-none truncate w-full text-center px-1">
+        {item.label}
+      </span>
     </Link>
   )
 }
 
+// ── Mobile: drawer item ─────────────────────────────────────────────────────
+function DrawerNavItem({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
+  const isActive = useIsActive(item.to)
+  return (
+    <Link
+      to={item.to}
+      onClick={onNavigate}
+      className={cn(
+        'flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm transition-all duration-150',
+        isActive
+          ? 'bg-coral-500/15 text-coral-400 font-medium'
+          : 'text-ink-secondary hover:text-ink-primary hover:bg-surface-card'
+      )}
+    >
+      <item.icon
+        size={18}
+        className={cn('shrink-0', isActive ? 'text-coral-400' : 'text-ink-tertiary')}
+      />
+      {item.label}
+    </Link>
+  )
+}
+
+// ── Mobile nav (bottom bar + drawer) ───────────────────────────────────────
 export function MobileNav() {
   const user = useCurrentUser()
+  const { signOut } = useAuthActions()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const visibleItems = NAV_ITEMS.filter(
     (item) => user && item.roles.includes(user.role)
-  ).slice(0, 5)
+  )
+
+  const primaryItems = visibleItems.slice(0, MOBILE_PRIMARY)
+  const overflowItems = visibleItems.slice(MOBILE_PRIMARY)
+  const hasOverflow = overflowItems.length > 0
+
+  function closeDrawer() { setDrawerOpen(false) }
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-raised border-t border-surface-border">
-      <div className="flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {visibleItems.map((item) => (
-          <MobileNavItem key={item.to} item={item} />
-        ))}
+    <>
+      {/* Backdrop */}
+      {drawerOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={closeDrawer}
+        />
+      )}
+
+      {/* Slide-up drawer */}
+      <div
+        className={cn(
+          'lg:hidden fixed inset-x-0 bottom-0 z-50 bg-surface-raised rounded-t-2xl border-t border-surface-border transition-transform duration-300 ease-out',
+          drawerOpen ? 'translate-y-0' : 'translate-y-full'
+        )}
+      >
+        {/* Handle + header */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+          <div className="w-8 h-1 rounded-full bg-surface-muted absolute left-1/2 -translate-x-1/2 top-3" />
+          <span className="text-xs font-semibold text-ink-tertiary uppercase tracking-widest">Menu</span>
+          <button
+            onClick={closeDrawer}
+            className="p-1.5 rounded-lg text-ink-tertiary hover:text-ink-primary hover:bg-surface-card transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Overflow nav items */}
+        <nav className="px-3 pb-2 space-y-0.5">
+          {overflowItems.map((item) => (
+            <DrawerNavItem key={item.to} item={item} onNavigate={closeDrawer} />
+          ))}
+        </nav>
+
+        {/* User info + sign out */}
+        {user && (
+          <div className="mx-3 mb-3 border-t border-surface-border pt-3">
+            <div className="px-4 py-2 mb-1">
+              <p className="text-sm font-medium text-ink-primary">{user.name}</p>
+              <p className="text-xs text-ink-tertiary capitalize">{user.role}</p>
+            </div>
+            <button
+              onClick={() => void signOut()}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm text-ink-tertiary hover:text-rose hover:bg-rose-bg transition-all duration-150"
+            >
+              <LogOut size={18} />
+              Sign out
+            </button>
+          </div>
+        )}
+
+        <div style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
       </div>
-    </nav>
+
+      {/* Bottom bar */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-raised/95 backdrop-blur-md border-t border-surface-border">
+        <div className="flex items-stretch" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          {primaryItems.map((item) => (
+            <MobileNavItem key={item.to} item={item} />
+          ))}
+
+          {hasOverflow ? (
+            <button
+              onClick={() => setDrawerOpen((o) => !o)}
+              className={cn(
+                'flex-1 flex flex-col items-center justify-center py-2 gap-1 transition-colors min-w-0',
+                drawerOpen ? 'text-coral-400' : 'text-ink-tertiary'
+              )}
+            >
+              <div className={cn(
+                'flex items-center justify-center w-10 h-7 rounded-xl transition-colors',
+                drawerOpen ? 'bg-coral-500/15' : ''
+              )}>
+                <Menu size={19} />
+              </div>
+              <span className="text-[10px] font-medium leading-none">More</span>
+            </button>
+          ) : (
+            // No overflow — show sign out as last item for single-item roles (worker)
+            visibleItems.length <= MOBILE_PRIMARY && (
+              <button
+                onClick={() => void signOut()}
+                className="flex-1 flex flex-col items-center justify-center py-2 gap-1 text-ink-tertiary transition-colors min-w-0"
+              >
+                <div className="flex items-center justify-center w-10 h-7">
+                  <LogOut size={19} />
+                </div>
+                <span className="text-[10px] font-medium leading-none">Sign out</span>
+              </button>
+            )
+          )}
+        </div>
+      </nav>
+    </>
   )
 }
