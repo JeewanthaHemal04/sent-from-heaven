@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { Id } from '../../convex/_generated/dataModel'
+import type { Id } from '../../convex/_generated/dataModel'
 import { Save, CupSoda, TrendingDown, CheckCircle } from 'lucide-react'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { FullPageSpinner } from '@/components/ui/spinner'
 import { todaySL, formatDate } from '@/lib/utils'
@@ -316,11 +315,11 @@ export function VendingMachinePage() {
                             : 'text-emerald'
                       }`}
                     >
-                      {totals?.totalLossCups === null
+                      {totals?.totalLossCups == null
                         ? '—'
-                        : (totals.totalLossCups ?? 0) > 0
+                        : totals.totalLossCups > 0
                           ? `+${totals.totalLossCups}`
-                          : String(totals?.totalLossCups ?? 0)}
+                          : String(totals.totalLossCups)}
                     </td>
                   </tr>
                 </tfoot>
