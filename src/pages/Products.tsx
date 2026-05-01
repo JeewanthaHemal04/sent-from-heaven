@@ -1,0 +1,230 @@
+import { useState } from 'react'
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
+import { Plus, Eye, EyeOff, Edit2, Package } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Modal } from '@/components/ui/modal'
+import { FullPageSpinner } from '@/components/ui/spinner'
+
+type ProductDoc = {
+  _id: Id<'products'>
+  name: string
+  sku: string
+  category: string
+  imageUrl?: string
+  imageServingUrl?: string | null
+  isActive: boolean
+  sortOrder: number
+  unitCost?: number
+}
+
+export function ProductsPage() {
+  const products = useQuery(api.products.listAll)
+  const toggleActive = useMutation(api.products.toggleActive)
+  const [editProduct, setEditProduct] = useState<ProductDoc | null>(null)
+  const [showAdd, setShowAdd] = useState(false)
+
+  if (products === undefined) return <FullPageSpinner />
+
+  const grouped = products.reduce<Record<string, ProductDoc[]>>((acc, p) => {
+    if (!acc[p.category]) acc[p.category] = []
+    acc[p.category].push(p as ProductDoc)
+    return acc
+  }, {})
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="font-display italic text-3xl text-ink-primary mb-1">Products</h1>
+          <p className="text-sm text-ink-secondary">
+            {products.filter((p) => p.isActive).length} active · {products.length} total
+          </p>
+        </div>
+        <Button size="md" leftIcon={<Plus size={15} />} onClick={() => setShowAdd(true)}>
+          Add Product
+        </Button>
+      </div>
+
+      {products.length === 0 ? (
+        <div className="text-center py-16">
+          <Package size={40} className="text-surface-muted mx-auto mb-3" />
+          <p className="text-sm text-ink-tertiary">No products yet. Add your first product to get started.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(grouped).map(([category, prods]) => (
+            <div key={category}>
+              <h3 className="text-xs font-semibold text-ink-tertiary uppercase tracking-widest mb-2 px-1">
+                {category}
+              </h3>
+              <div className="space-y-1.5">
+                {prods.map((product) => (
+                  <div
+                    key={product._id.toString()}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
+                      product.isActive
+                        ? 'bg-surface-card border-surface-border'
+                        : 'bg-surface-raised/50 border-surface-border/50 opacity-60'
+                    }`}
+                  >
+                    {/* Image / icon */}
+                    <div className="w-10 h-10 rounded-lg bg-surface-elevated flex items-center justify-center shrink-0 overflow-hidden">
+                      {product.imageServingUrl ?? product.imageUrl ? (
+                        <img
+                          src={(product.imageServingUrl ?? product.imageUrl)!}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Package size={16} className="text-surface-muted" />
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ink-primary truncate">{product.name}</p>
+                      <p className="text-xs text-ink-tertiary">
+                        {product.sku}
+                        {product.unitCost != null && ` · LKR ${product.unitCost}`}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant={product.isActive ? 'success' : 'default'} size="sm">
+                        {product.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                      <button
+                        onClick={() => setEditProduct(product)}
+                        className="p-1.5 rounded-lg text-ink-tertiary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
+                        aria-label="Edit"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => void toggleActive({ productId: product._id })}
+                        className="p-1.5 rounded-lg text-ink-tertiary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
+                        aria-label={product.isActive ? 'Deactivate' : 'Activate'}
+                      >
+                        {product.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ProductFormModal
+        open={showAdd || !!editProduct}
+        onClose={() => { setShowAdd(false); setEditProduct(null) }}
+        product={editProduct}
+      />
+    </div>
+  )
+}
+
+// ── Product Form Modal ────────────────────────────────────────────────────
+
+interface ProductFormModalProps {
+  open: boolean
+  onClose: () => void
+  product: ProductDoc | null
+}
+
+function ProductFormModal({ open, onClose, product }: ProductFormModalProps) {
+  const createProduct = useMutation(api.products.create)
+  const updateProduct = useMutation(api.products.update)
+
+  const [name, setName] = useState(product?.name ?? '')
+  const [sku, setSku] = useState(product?.sku ?? '')
+  const [category, setCategory] = useState(product?.category ?? '')
+  const [imageUrl, setImageUrl] = useState(product?.imageUrl ?? '')
+  const [unitCost, setUnitCost] = useState(product?.unitCost != null ? String(product.unitCost) : '')
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Reset when product changes
+  const resetForm = () => {
+    setName(product?.name ?? '')
+    setSku(product?.sku ?? '')
+    setCategory(product?.category ?? '')
+    setImageUrl(product?.imageUrl ?? '')
+    setUnitCost(product?.unitCost != null ? String(product.unitCost) : '')
+  }
+
+  async function handleSubmit() {
+    if (!name || !sku || !category) return alert('Name, SKU and category are required')
+    setIsSaving(true)
+    try {
+      if (product) {
+        await updateProduct({
+          productId: product._id,
+          name,
+          sku,
+          category,
+          imageUrl: imageUrl || undefined,
+          unitCost: unitCost ? parseFloat(unitCost) : undefined,
+        })
+      } else {
+        await createProduct({
+          name,
+          sku,
+          category,
+          imageUrl: imageUrl || undefined,
+          unitCost: unitCost ? parseFloat(unitCost) : undefined,
+        })
+      }
+      onClose()
+      resetForm()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to save')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => { onClose(); resetForm() }}
+      title={product ? 'Edit Product' : 'Add Product'}
+    >
+      <div className="space-y-4">
+        <Input label="Product Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Chocolate Éclair" />
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="e.g. SKU-001" />
+          <Input label="Category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Short Eat" />
+        </div>
+        <Input
+          label="Image URL (optional)"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          placeholder="https://…"
+          hint="Paste a direct image URL"
+        />
+        <Input
+          label="Unit Cost (LKR, optional)"
+          type="number"
+          min="0"
+          step="0.01"
+          value={unitCost}
+          onChange={(e) => setUnitCost(e.target.value)}
+          placeholder="0.00"
+          hint="Used to calculate financial impact of variance"
+          leftAddon={<span className="text-xs">LKR</span>}
+        />
+        <div className="flex gap-3 pt-2">
+          <Button variant="ghost" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button isLoading={isSaving} onClick={() => void handleSubmit()} className="flex-1">
+            {product ? 'Save Changes' : 'Add Product'}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}

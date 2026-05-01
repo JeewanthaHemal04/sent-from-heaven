@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Brand: warm coral spectrum ── */
+  --color-coral-50: #fff5f2;
+  --color-coral-100: #ffe8e1;
+  --color-coral-200: #ffc9b8;
+  --color-coral-300: #ffa08a;
+  --color-coral-400: #f07355;
+  --color-coral-500: #e05c3a;
+  --color-coral-600: #c94620;
+  --color-coral-700: #a33617;
+  --color-coral-800: #7a2810;
+  --color-coral-900: #4a1808;
+
+  /* ── Dark surfaces (warm-tinted) ── */
+  --color-surface-bg: #0e0e0e;
+  --color-surface-raised: #161616;
+  --color-surface-card: #1e1e1e;
+  --color-surface-elevated: #272727;
+  --color-surface-border: #2e2e2e;
+  --color-surface-muted: #3d3d3d;
+
+  /* ── Ink (text) ── */
+  --color-ink-primary: #f2ede8;
+  --color-ink-secondary: #b8b0a8;
+  --color-ink-tertiary: #7a7470;
+
+  /* ── Gold accent ── */
+  --color-gold: #f59e0b;
+  --color-gold-muted: #78350f;
+
+  /* ── Semantic status ── */
+  --color-emerald: #4ade80;
+  --color-emerald-bg: #052e16;
+  --color-rose: #f87171;
+  --color-rose-bg: #2d0a0a;
+  --color-amber: #fbbf24;
+  --color-amber-bg: #2d1800;
+
+  /* ── Typography ── */
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  /* ── Border radius ── */
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow-coral: 0 0 40px rgba(224, 92, 58, 0.15);
+}
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    background-color: #0e0e0e;
+    color: #f2ede8;
+    font-family: var(--font-sans);
+  }
+
+  #root {
+    min-height: 100svh;
+  }
+
+  /* Remove number input spinners */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* Text selection */
+  ::selection {
+    background: rgba(224, 92, 58, 0.3);
+    color: #f2ede8;
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    outline: 2px solid #e05c3a;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Thin scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2e2e2e; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3d3d3d; }
+}
+
+/* ── Utility: noise texture overlay ── */
+@layer utilities {
+  .noise {
+    position: relative;
+  }
+  .noise::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+  }
+}
