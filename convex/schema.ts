@@ -105,6 +105,31 @@ export default defineSchema({
   })
     .index('by_date', ['date']),
 
+  // ── Vending Machine Products ──────────────────────────────────────────────
+  vendingMachineProducts: defineTable({
+    name: v.string(),
+    cupsPerPacket: v.number(),   // cups yielded by one full packet
+    gramsPerPacket: v.number(),  // weight of one full packet in grams
+    isActive: v.boolean(),
+    sortOrder: v.number(),
+  })
+    .index('by_active_sort', ['isActive', 'sortOrder'])
+    .index('by_sort', ['sortOrder']),
+
+  // ── Vending Machine Daily Logs ────────────────────────────────────────────
+  vendingMachineLogs: defineTable({
+    date: v.string(),                          // YYYY-MM-DD (Sri Lanka tz)
+    productId: v.id('vendingMachineProducts'),
+    physicalCupCount: v.number(),              // actual cups dispensed today
+    closingGrams: v.number(),                  // total grams remaining (all packets)
+    createdBy: v.id('users'),
+    updatedAt: v.number(),
+    notes: v.optional(v.string()),
+  })
+    .index('by_date', ['date'])
+    .index('by_date_product', ['date', 'productId'])
+    .index('by_product_date', ['productId', 'date']),
+
   // ── Special Orders ────────────────────────────────────────────────────────
   specialOrders: defineTable({
     customerName: v.string(),

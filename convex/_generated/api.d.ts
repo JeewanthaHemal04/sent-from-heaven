@@ -17,6 +17,8 @@ import type * as products from "../products.js";
 import type * as stockCounts from "../stockCounts.js";
 import type * as stockSessions from "../stockSessions.js";
 import type * as users from "../users.js";
+import type * as vendingMachineLogs from "../vendingMachineLogs.js";
+import type * as vendingMachineProducts from "../vendingMachineProducts.js";
 
 import type {
   ApiFromModules,
@@ -34,6 +36,8 @@ declare const fullApi: ApiFromModules<{
   stockCounts: typeof stockCounts;
   stockSessions: typeof stockSessions;
   users: typeof users;
+  vendingMachineLogs: typeof vendingMachineLogs;
+  vendingMachineProducts: typeof vendingMachineProducts;
 }>;
 
 /**

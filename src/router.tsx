@@ -15,6 +15,7 @@ import { MovementsPage } from '@/pages/Movements'
 import { DailySummaryPage } from '@/pages/DailySummary'
 import { ProductsPage } from '@/pages/Products'
 import { UsersPage } from '@/pages/Users'
+import { VendingMachinePage } from '@/pages/VendingMachine'
 
 // ── Root route ────────────────────────────────────────────────────────────
 
@@ -94,6 +95,12 @@ const usersRoute = createRoute({
   component: UsersPage,
 })
 
+const vendingMachineRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/vending-machine',
+  component: VendingMachinePage,
+})
+
 // ── Route tree ────────────────────────────────────────────────────────────
 
 const routeTree = rootRoute.addChildren([
@@ -108,6 +115,7 @@ const routeTree = rootRoute.addChildren([
     dailySummaryRoute,
     productsRoute,
     usersRoute,
+    vendingMachineRoute,
   ]),
 ])
 

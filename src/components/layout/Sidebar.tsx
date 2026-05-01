@@ -7,6 +7,7 @@ import {
   Package,
   Users,
   LogOut,
+  CupSoda,
 } from 'lucide-react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { cn } from '@/lib/utils'
@@ -24,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/stock-taking', icon: ClipboardList, label: 'Stock Taking', roles: ['owner', 'manager', 'worker'] },
   { to: '/movements', icon: ArrowLeftRight, label: 'Movements', roles: ['owner', 'manager'] },
   { to: '/daily-summary', icon: CalendarCheck, label: 'Daily Summary', roles: ['owner', 'manager'] },
+  { to: '/vending-machine', icon: CupSoda, label: 'Vending Machine', roles: ['owner', 'manager'] },
   { to: '/products', icon: Package, label: 'Products', roles: ['owner'] },
   { to: '/users', icon: Users, label: 'Users', roles: ['owner'] },
 ]
