@@ -63,6 +63,7 @@ export function StockTakingCard({
   const [quantity, setQuantity] = useState<string>(
     existingCount !== undefined ? String(existingCount) : ''
   )
+  const [jumpValue, setJumpValue] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -157,9 +158,37 @@ export function StockTakingCard({
             </div>
           )}
 
-          <span className="text-xs font-medium text-emerald">
-            {Math.round((countsMap.size / totalProducts) * 100)}%
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-emerald">
+              {Math.round((countsMap.size / totalProducts) * 100)}%
+            </span>
+
+            {/* Jump to product input */}
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={totalProducts}
+                value={jumpValue}
+                onChange={(e) => setJumpValue(e.target.value)}
+                placeholder="#"
+                className="w-14 text-xs bg-surface-bg border border-surface-border rounded-lg px-2 py-1 text-ink-primary focus:outline-none"
+                aria-label="Jump to product number"
+              />
+              <button
+                onClick={() => {
+                  const n = parseInt(jumpValue, 10)
+                  if (isNaN(n) || n < 1 || n > totalProducts) return
+                  onNavigateTo(n - 1)
+                  setJumpValue('')
+                }}
+                className="px-2 py-1 rounded-lg bg-surface-elevated border border-surface-border text-xs text-ink-secondary hover:text-ink-primary"
+                aria-label="Go to product"
+              >
+                Go
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
