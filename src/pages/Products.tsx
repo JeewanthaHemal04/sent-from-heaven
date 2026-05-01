@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
@@ -147,6 +147,26 @@ function ProductFormModal({ open, onClose, product }: ProductFormModalProps) {
   const [imageUrl, setImageUrl] = useState(product?.imageUrl ?? '')
   const [unitCost, setUnitCost] = useState(product?.unitCost != null ? String(product.unitCost) : '')
   const [isSaving, setIsSaving] = useState(false)
+
+  // Sync form with product whenever open or product changes
+  useEffect(() => {
+    if (open) {
+      if (product) {
+        setName(product.name)
+        setSku(product.sku)
+        setCategory(product.category)
+        setImageUrl(product.imageUrl ?? '')
+        setUnitCost(product.unitCost != null ? String(product.unitCost) : '')
+      } else {
+        // New product — reset form
+        setName('')
+        setSku('')
+        setCategory('')
+        setImageUrl('')
+        setUnitCost('')
+      }
+    }
+  }, [open, product])
 
   // Reset when product changes
   const resetForm = () => {
