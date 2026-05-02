@@ -46,3 +46,48 @@ export const upsertCount = mutation({
     }
   },
 })
+
+/**
+ * Owner-only override: edit a stock count on any session, including submitted ones.
+ * Used by admins to correct counts after a session is submitted.
+ */
+export const adminEditCount = mutation({
+  args: {
+    sessionId: v.id('stockSessions'),
+    productId: v.id('products'),
+    countedQuantity: v.number(),
+  },
+  handler: async (ctx, { sessionId, productId, countedQuantity }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('Not authenticated')
+    const caller = await ctx.db.get(userId)
+    if (!caller || caller.role !== 'owner') throw new Error('Unauthorized')
+
+    const session = await ctx.db.get(sessionId)
+    if (!session) throw new Error('Session not found')
+    // No submitted-check — intentional owner bypass
+
+    const existing = await ctx.db
+      .query('stockCounts')
+      .withIndex('by_session_product', (q) =>
+        q.eq('sessionId', sessionId).eq('productId', productId)
+      )
+      .first()
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        countedQuantity,
+        countedAt: Date.now(),
+        countedBy: userId,
+      })
+    } else {
+      await ctx.db.insert('stockCounts', {
+        sessionId,
+        productId,
+        countedQuantity,
+        countedAt: Date.now(),
+        countedBy: userId,
+      })
+    }
+  },
+})

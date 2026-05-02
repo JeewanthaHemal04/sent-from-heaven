@@ -25,6 +25,7 @@ export default defineSchema({
     isActive: v.boolean(),
     sortOrder: v.number(),
     unitCost: v.optional(v.number()), // For variance financial impact calc
+    isNotStockTaking: v.optional(v.boolean()), // If true, excluded from stock taking sessions
   })
     .index('by_sku', ['sku'])
     .index('by_category', ['category'])
@@ -159,4 +160,24 @@ export default defineSchema({
   })
     .index('by_delivery_date', ['deliveryDate'])
     .index('by_status', ['status']),
+
+  // ── Automation Runs ───────────────────────────────────────────────────────
+  // Tracks triggered scrape-and-import runs. UI creates 'pending' record;
+  // local automation process picks it up reactively and marks running/done.
+  automationRuns: defineTable({
+    date: v.string(), // YYYY-MM-DD target date
+    status: v.union(
+      v.literal('pending'),
+      v.literal('running'),
+      v.literal('completed'),
+      v.literal('failed')
+    ),
+    triggeredBy: v.id('users'),
+    triggeredAt: v.number(),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    importedCount: v.optional(v.number()),
+  })
+    .index('by_status', ['status'])
+    .index('by_date', ['date']),
 })

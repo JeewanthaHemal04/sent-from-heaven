@@ -6,12 +6,13 @@ import type { Id } from '../../convex/_generated/dataModel'
 import { StockTakingCard } from '@/components/stock/StockTakingCard'
 import { SessionReview } from '@/components/stock/SessionReview'
 import { FullPageSpinner } from '@/components/ui/spinner'
-import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { useCurrentUser, useIsOwner } from '@/hooks/useCurrentUser'
 
 export function StockSessionPage() {
   const { sessionId } = useParams({ from: '/_app/stock-taking/$sessionId' })
   const navigate = useNavigate()
   const user = useCurrentUser()
+  const isOwner = useIsOwner()
 
   const sessionData = useQuery(api.stockSessions.getSessionWithCounts, {
     sessionId: sessionId as Id<'stockSessions'>,
@@ -19,12 +20,20 @@ export function StockSessionPage() {
 
   const upsertCount = useMutation(api.stockCounts.upsertCount)
   const submitSession = useMutation(api.stockSessions.submitSession)
+  const adminEditCount = useMutation(api.stockCounts.adminEditCount)
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [direction, setDirection] = useState(1)
   const [showReview, setShowReview] = useState(false)
   const [viewInitialized, setViewInitialized] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editTarget, setEditTarget] = useState<{
+    productId: string
+    productName: string
+    currentCount: number
+  } | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
 
   useEffect(() => {
     if (!sessionData || viewInitialized) return
@@ -115,6 +124,81 @@ export function StockSessionPage() {
   }
 
   if (session.status === 'submitted') {
+    // Owners can view and edit counts on submitted sessions
+    if (isOwner) {
+      return (
+        <>
+          <SessionReview
+            products={products}
+            counts={counts.map((c) => ({
+              productId: c.productId.toString(),
+              countedQuantity: c.countedQuantity,
+            }))}
+            onEditProduct={() => {}}
+            onSubmit={async () => {}}
+            isSubmitting={false}
+            date={session.date}
+            isSubmitted
+            onAdminEdit={(productId, productName, currentCount) => {
+              setEditTarget({ productId, productName, currentCount })
+              setEditValue(String(currentCount))
+            }}
+          />
+
+          {/* Admin edit modal */}
+          {editTarget && (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+              <div className="w-full max-w-sm bg-surface-raised rounded-2xl border border-surface-border p-5 shadow-xl">
+                <h3 className="font-display italic text-lg text-ink-primary mb-1">Edit Count</h3>
+                <p className="text-sm text-ink-secondary mb-4">{editTarget.productName}</p>
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="w-full text-center text-2xl font-semibold bg-surface-elevated border border-surface-border rounded-xl px-4 py-3 text-ink-primary focus:outline-none focus:border-coral-500 mb-4"
+                  autoFocus
+                  onFocus={(e) => e.target.select()}
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setEditTarget(null)}
+                    className="flex-1 py-2.5 rounded-xl border border-surface-border text-sm text-ink-secondary hover:text-ink-primary transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={isSavingEdit}
+                    onClick={async () => {
+                      const qty = parseInt(editValue, 10)
+                      if (isNaN(qty) || qty < 0) return
+                      setIsSavingEdit(true)
+                      try {
+                        await adminEditCount({
+                          sessionId: sessionId as Id<'stockSessions'>,
+                          productId: editTarget.productId as Id<'products'>,
+                          countedQuantity: qty,
+                        })
+                        setEditTarget(null)
+                      } catch (e) {
+                        alert(e instanceof Error ? e.message : 'Failed to save')
+                      } finally {
+                        setIsSavingEdit(false)
+                      }
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-coral-500 hover:bg-coral-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    {isSavingEdit ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )
+    }
+
     return (
       <div className="flex h-dvh items-center justify-center p-6 text-center">
         <div>

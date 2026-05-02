@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
-import { Plus, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp, Trash2, Play, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal, ConfirmModal } from '@/components/ui/modal'
@@ -10,20 +10,35 @@ import { MovementBadge } from '@/components/ui/badge'
 import { FullPageSpinner } from '@/components/ui/spinner'
 import { todaySL, formatDate, MOVEMENT_LABELS } from '@/lib/utils'
 import type { MovementType } from '@/lib/utils'
-import { useIsOwner } from '@/hooks/useCurrentUser'
+import { useIsOwner, useIsManager } from '@/hooks/useCurrentUser'
 
 const ALL_TYPES: MovementType[] = ['GRN', 'TradingGRN', 'TransferIn', 'CR', 'TransferOut']
 
 export function MovementsPage() {
   const isOwner = useIsOwner()
+  const isManager = useIsManager()
   const today = todaySL()
   const [filterDate, setFilterDate] = useState(today)
   const [showForm, setShowForm] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [isTriggeringRun, setIsTriggeringRun] = useState(false)
 
   const movements = useQuery(api.movements.listByDate, { date: filterDate })
   const deleteMovement = useMutation(api.movements.deleteMovement)
+  const latestRun = useQuery(api.automationTrigger.getLatestRun, { date: filterDate })
+  const triggerRun = useMutation(api.automationTrigger.triggerRun)
+
+  async function handleTriggerRun() {
+    setIsTriggeringRun(true)
+    try {
+      await triggerRun({ date: filterDate })
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to trigger run')
+    } finally {
+      setIsTriggeringRun(false)
+    }
+  }
 
   if (!movements) return <FullPageSpinner />
 
@@ -40,8 +55,8 @@ export function MovementsPage() {
         </Button>
       </div>
 
-      {/* Date filter */}
-      <div className="flex items-center gap-3 mb-5">
+      {/* Date filter + automation trigger */}
+      <div className="flex items-center gap-3 mb-3">
         <input
           type="date"
           value={filterDate}
@@ -49,7 +64,35 @@ export function MovementsPage() {
           className="text-sm bg-surface-elevated border border-surface-border rounded-xl px-4 py-2.5 text-ink-primary focus:outline-none focus:border-coral-500"
         />
         <span className="text-xs text-ink-tertiary">{formatDate(filterDate)}</span>
+        {isManager && (
+          <button
+            onClick={() => void handleTriggerRun()}
+            disabled={isTriggeringRun || latestRun?.status === 'pending' || latestRun?.status === 'running'}
+            className="ml-auto flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-surface-elevated border border-surface-border text-ink-secondary hover:text-ink-primary hover:border-coral-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isTriggeringRun || latestRun?.status === 'running' ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Play size={13} />
+            )}
+            Run Movements
+          </button>
+        )}
       </div>
+
+      {/* Automation run status banner */}
+      {isManager && latestRun && (
+        <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg mb-4 ${
+          latestRun.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+          latestRun.status === 'failed' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+          'bg-surface-elevated border border-surface-border text-ink-secondary'
+        }`}>
+          {latestRun.status === 'pending' && <><Loader2 size={12} className="animate-spin shrink-0" /><span>Automation run queued — waiting for local process…</span></>}
+          {latestRun.status === 'running' && <><Loader2 size={12} className="animate-spin shrink-0" /><span>Importing movements from POS system…</span></>}
+          {latestRun.status === 'completed' && <><CheckCircle2 size={12} className="shrink-0" /><span>Imported {latestRun.importedCount} movement{latestRun.importedCount !== 1 ? 's' : ''} from POS</span></>}
+          {latestRun.status === 'failed' && <><XCircle size={12} className="shrink-0" /><span>Import failed: {latestRun.error}</span></>}
+        </div>
+      )}
 
       {/* Movements list */}
       {movements.length === 0 ? (

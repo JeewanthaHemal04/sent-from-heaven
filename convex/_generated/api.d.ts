@@ -10,6 +10,7 @@
 
 import type * as analysis from "../analysis.js";
 import type * as auth from "../auth.js";
+import type * as automationTrigger from "../automationTrigger.js";
 import type * as dailySummary from "../dailySummary.js";
 import type * as http from "../http.js";
 import type * as movements from "../movements.js";
@@ -29,6 +30,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   analysis: typeof analysis;
   auth: typeof auth;
+  automationTrigger: typeof automationTrigger;
   dailySummary: typeof dailySummary;
   http: typeof http;
   movements: typeof movements;

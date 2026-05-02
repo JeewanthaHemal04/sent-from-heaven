@@ -4,6 +4,15 @@ import { v } from 'convex/values'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import type { Id } from './_generated/dataModel'
 
+// ── Document type → movement type map ────────────────────────────────────
+const DOC_TYPE_MAP: Record<string, 'GRN' | 'TradingGRN' | 'TransferIn' | 'TransferOut' | 'CR'> = {
+  FINISHED_GOOD_GRN: 'GRN',
+  TRADING_GRN: 'TradingGRN',
+  TRANSFER_IN: 'TransferIn',
+  TRANSFER_OUT: 'TransferOut',
+  CREDIT_RETURN: 'CR',
+}
+
 // ── Shared validators ─────────────────────────────────────────────────────
 const itemsValidator = v.array(
   v.object({
@@ -161,5 +170,120 @@ export const listByDateRange = query({
         return { ...m, creatorName: creator?.name ?? 'Unknown' }
       })
     )
+  },
+})
+
+/**
+ * Bulk-import automation scraped data for a date.
+ * - Deletes all existing playwright-sourced movements for that date (override/idempotent)
+ * - Upserts products by itemCode (sku); new products get isNotStockTaking=true
+ * - Inserts new movements with source='playwright'
+ * No user auth required — called by the local automation Node.js process.
+ */
+export const importMovementsForDate = mutation({
+  args: {
+    date: v.string(),
+    documents: v.array(
+      v.object({
+        type: v.union(
+          v.literal('FINISHED_GOOD_GRN'),
+          v.literal('TRADING_GRN'),
+          v.literal('TRANSFER_IN'),
+          v.literal('TRANSFER_OUT'),
+          v.literal('CREDIT_RETURN')
+        ),
+        id: v.string(),
+        total: v.number(),
+        items: v.array(
+          v.object({
+            name: v.string(),
+            itemCode: v.string(),
+            qty: v.number(),
+            unitPrice: v.number(),
+          })
+        ),
+      })
+    ),
+  },
+  handler: async (ctx, { date, documents }) => {
+    // Use owner as createdBy (automation has no user session)
+    const owner = await ctx.db
+      .query('users')
+      .filter((q) => q.eq(q.field('role'), 'owner'))
+      .first()
+    if (!owner) throw new Error('No owner user found in system')
+
+    // 1. Delete all playwright-sourced movements for this date
+    const existing = await ctx.db
+      .query('stockMovements')
+      .withIndex('by_date', (q) => q.eq('date', date))
+      .collect()
+    await Promise.all(
+      existing.filter((m) => m.source === 'playwright').map((m) => ctx.db.delete(m._id))
+    )
+
+    // 2. Collect all unique itemCodes across all documents
+    const allItems = documents.flatMap((d) => d.items)
+    const uniqueCodes = [...new Set(allItems.map((i) => i.itemCode))].filter(Boolean)
+
+    // Compute current max sortOrder once — track locally to avoid re-querying in loop
+    const allProducts = await ctx.db.query('products').order('asc').collect()
+    let maxOrder = allProducts.length > 0 ? Math.max(...allProducts.map((p) => p.sortOrder)) : 0
+
+    // 3. Resolve or upsert each product by sku (itemCode)
+    const itemCodeToProductId: Record<string, Id<'products'>> = {}
+    for (const code of uniqueCodes) {
+      const product = await ctx.db
+        .query('products')
+        .withIndex('by_sku', (q) => q.eq('sku', code))
+        .first()
+
+      if (product) {
+        itemCodeToProductId[code] = product._id
+      } else {
+        const firstItem = allItems.find((i) => i.itemCode === code)
+        const name = firstItem?.name ?? code
+        const unitCost = firstItem?.unitPrice || undefined
+        maxOrder += 10
+        const newId = await ctx.db.insert('products', {
+          name,
+          sku: code,
+          category: 'Uncategorized',
+          isActive: true,
+          isNotStockTaking: true,
+          sortOrder: maxOrder,
+          unitCost,
+        })
+        itemCodeToProductId[code] = newId
+      }
+    }
+
+    // 4. Insert movements
+    for (const doc of documents) {
+      const movementType = DOC_TYPE_MAP[doc.type]
+      if (!movementType) continue
+
+      const items = doc.items
+        .filter((i) => i.itemCode && itemCodeToProductId[i.itemCode])
+        .map((i) => ({
+          productId: itemCodeToProductId[i.itemCode],
+          quantity: i.qty,
+          unitCost: i.unitPrice || undefined,
+        }))
+
+      if (items.length === 0) continue
+
+      await ctx.db.insert('stockMovements', {
+        type: movementType,
+        date,
+        referenceNumber: doc.id || undefined,
+        items,
+        source: 'playwright',
+        createdBy: owner._id,
+        createdAt: Date.now(),
+      })
+    }
+
+    return { importedCount: documents.length }
   },
 })

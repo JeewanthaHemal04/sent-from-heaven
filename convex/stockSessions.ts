@@ -57,9 +57,12 @@ export const getSessionWithCounts = query({
         .collect(),
     ])
 
+    // Exclude products opted out of stock taking
+    const stockTakingProducts = products.filter((p) => !p.isNotStockTaking)
+
     // Attach serving URLs
     const productsWithImages = await Promise.all(
-      products.map(async (p) => ({
+      stockTakingProducts.map(async (p) => ({
         ...p,
         imageServingUrl: p.imageStorageId
           ? await ctx.storage.getUrl(p.imageStorageId)
@@ -121,8 +124,10 @@ export const submitSession = mutation({
         .collect(),
     ])
 
+    // Only require counts for stock-taking products
+    const stockTakingProducts = activeProducts.filter((p) => !p.isNotStockTaking)
     const countedIds = new Set(counts.map((c) => c.productId.toString()))
-    const uncounted = activeProducts.filter((p) => !countedIds.has(p._id.toString()))
+    const uncounted = stockTakingProducts.filter((p) => !countedIds.has(p._id.toString()))
 
     if (uncounted.length > 0) {
       throw new Error(

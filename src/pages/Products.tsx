@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
-import { Plus, Eye, EyeOff, Edit2, Package } from 'lucide-react'
+import { Plus, Eye, EyeOff, Edit2, Package, PackageX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { FullPageSpinner } from '@/components/ui/spinner'
+import { useIsOwner } from '@/hooks/useCurrentUser'
 
 type ProductDoc = {
   _id: Id<'products'>
@@ -19,11 +20,14 @@ type ProductDoc = {
   isActive: boolean
   sortOrder: number
   unitCost?: number
+  isNotStockTaking?: boolean
 }
 
 export function ProductsPage() {
   const products = useQuery(api.products.listAll)
   const toggleActive = useMutation(api.products.toggleActive)
+  const toggleNotStockTaking = useMutation(api.products.toggleNotStockTaking)
+  const isOwner = useIsOwner()
   const [editProduct, setEditProduct] = useState<ProductDoc | null>(null)
   const [showAdd, setShowAdd] = useState(false)
 
@@ -86,7 +90,14 @@ export function ProductsPage() {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ink-primary truncate">{product.name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-sm font-medium text-ink-primary truncate">{product.name}</p>
+                        {product.isNotStockTaking && (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/20 shrink-0">
+                            No Stock Take
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-ink-tertiary">
                         {product.sku}
                         {product.unitCost != null && ` · LKR ${product.unitCost}`}
@@ -111,6 +122,19 @@ export function ProductsPage() {
                       >
                         {product.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
+                      {isOwner && (
+                        <button
+                          onClick={() => void toggleNotStockTaking({ productId: product._id })}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            product.isNotStockTaking
+                              ? 'text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20'
+                              : 'text-ink-tertiary hover:text-ink-primary hover:bg-surface-elevated'
+                          }`}
+                          title={product.isNotStockTaking ? 'Include in stock taking' : 'Exclude from stock taking'}
+                        >
+                          <PackageX size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -23,6 +23,10 @@ interface SessionReviewProps {
   onSubmit: () => Promise<void>
   isSubmitting: boolean
   date: string
+  /** If provided, edit buttons call this instead of navigating to card mode (for submitted sessions) */
+  onAdminEdit?: (productId: string, productName: string, currentCount: number) => void
+  /** When true, the submit footer is hidden (session already submitted) */
+  isSubmitted?: boolean
 }
 
 export function SessionReview({
@@ -32,6 +36,8 @@ export function SessionReview({
   onSubmit,
   isSubmitting,
   date,
+  onAdminEdit,
+  isSubmitted,
 }: SessionReviewProps) {
   const [showConfirm, setShowConfirm] = useState(false)
 
@@ -121,7 +127,13 @@ export function SessionReview({
 
                     {/* Edit button */}
                     <button
-                      onClick={() => onEditProduct(productIndex)}
+                      onClick={() => {
+                        if (onAdminEdit) {
+                          onAdminEdit(product._id, product.name, count ?? 0)
+                        } else {
+                          onEditProduct(productIndex)
+                        }
+                      }}
                       className="p-1.5 rounded-lg text-ink-tertiary hover:text-coral-400 hover:bg-coral-500/10 transition-colors"
                       aria-label={`Edit count for ${product.name}`}
                     >
@@ -135,26 +147,28 @@ export function SessionReview({
         ))}
       </div>
 
-      {/* Submit footer */}
-      <div
-        className="px-5 py-4 border-t border-surface-border bg-surface-raised shrink-0"
-        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
-      >
-        {canSubmit ? (
-          <Button
-            size="lg"
-            className="w-full"
-            leftIcon={<Send size={16} />}
-            onClick={() => setShowConfirm(true)}
-          >
-            Submit Stock Count
-          </Button>
-        ) : (
-          <div className="text-center text-sm text-ink-tertiary">
-            Count all {uncounted.length} remaining products to submit
-          </div>
-        )}
-      </div>
+      {/* Submit footer — hidden for already-submitted sessions */}
+      {!isSubmitted && (
+        <div
+          className="px-5 py-4 border-t border-surface-border bg-surface-raised shrink-0"
+          style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+        >
+          {canSubmit ? (
+            <Button
+              size="lg"
+              className="w-full"
+              leftIcon={<Send size={16} />}
+              onClick={() => setShowConfirm(true)}
+            >
+              Submit Stock Count
+            </Button>
+          ) : (
+            <div className="text-center text-sm text-ink-tertiary">
+              Count all {uncounted.length} remaining products to submit
+            </div>
+          )}
+        </div>
+      )}
 
       <ConfirmModal
         open={showConfirm}

@@ -12,9 +12,12 @@ export const listActive = query({
       .order('asc')
       .collect()
 
+    // Exclude products opted out of stock taking
+    const stockTakingProducts = products.filter((p) => !p.isNotStockTaking)
+
     // Attach serving URLs for stored images
     return await Promise.all(
-      products.map(async (p) => ({
+      stockTakingProducts.map(async (p) => ({
         ...p,
         imageServingUrl: p.imageStorageId
           ? await ctx.storage.getUrl(p.imageStorageId)
@@ -139,6 +142,21 @@ export const toggleActive = mutation({
     const product = await ctx.db.get(productId)
     if (!product) throw new Error('Product not found')
     await ctx.db.patch(productId, { isActive: !product.isActive })
+  },
+})
+
+/** Toggle isNotStockTaking on a product — owner only */
+export const toggleNotStockTaking = mutation({
+  args: { productId: v.id('products') },
+  handler: async (ctx, { productId }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('Not authenticated')
+    const caller = await ctx.db.get(userId)
+    if (!caller || caller.role !== 'owner') throw new Error('Unauthorized')
+
+    const product = await ctx.db.get(productId)
+    if (!product) throw new Error('Product not found')
+    await ctx.db.patch(productId, { isNotStockTaking: !product.isNotStockTaking })
   },
 })
 
