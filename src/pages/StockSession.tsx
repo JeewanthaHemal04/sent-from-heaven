@@ -246,6 +246,8 @@ export function StockSessionPage() {
     )
   }
 
+  const allProducts = products.map((p) => ({ ...p, _id: p._id.toString() }))
+
   return (
     <StockTakingCard
       product={{ ...currentProduct, _id: currentProduct._id.toString() }}
@@ -258,6 +260,7 @@ export function StockSessionPage() {
       totalProducts={products.length}
       countsMap={countsMap}
       allProductIds={allProductIds}
+      allProducts={allProducts}
       onNavigateTo={handleNavigateTo}
       direction={direction}
     />

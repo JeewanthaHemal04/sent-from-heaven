@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 interface Product {
   _id: string
   name: string
+  sku: string
   category: string
   imageServingUrl?: string | null
   imageUrl?: string
@@ -22,6 +23,7 @@ interface StockTakingCardProps {
   totalProducts: number
   countsMap: Map<string, number>
   allProductIds: string[]
+  allProducts: Product[]
   onNavigateTo: (index: number) => void
   direction: number // 1 = forward, -1 = backward
 }
@@ -57,6 +59,7 @@ export function StockTakingCard({
   totalProducts,
   countsMap,
   allProductIds,
+  allProducts,
   onNavigateTo,
   direction,
 }: StockTakingCardProps) {
@@ -163,31 +166,34 @@ export function StockTakingCard({
               {Math.round((countsMap.size / totalProducts) * 100)}%
             </span>
 
-            {/* Jump to product input */}
-            <div className="flex items-center gap-2">
+            {/* SKU jump input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const q = jumpValue.trim().toUpperCase()
+                if (!q) return
+                const idx = allProducts.findIndex(
+                  (p) => p.sku.toUpperCase() === q || p.sku.toUpperCase().includes(q)
+                )
+                if (idx >= 0) { onNavigateTo(idx); setJumpValue('') }
+              }}
+              className="flex items-center gap-1.5"
+            >
               <input
-                type="number"
-                min={1}
-                max={totalProducts}
+                type="text"
                 value={jumpValue}
                 onChange={(e) => setJumpValue(e.target.value)}
-                placeholder="#"
-                className="w-14 text-xs bg-surface-bg border border-surface-border rounded-lg px-2 py-1 text-ink-primary focus:outline-none"
-                aria-label="Jump to product number"
+                placeholder="SKU"
+                className="w-20 text-xs bg-surface-bg border border-surface-border rounded-lg px-2 py-1 text-ink-primary focus:outline-none focus:border-coral-500/60 uppercase placeholder:normal-case"
+                aria-label="Jump to SKU"
               />
               <button
-                onClick={() => {
-                  const n = parseInt(jumpValue, 10)
-                  if (isNaN(n) || n < 1 || n > totalProducts) return
-                  onNavigateTo(n - 1)
-                  setJumpValue('')
-                }}
+                type="submit"
                 className="px-2 py-1 rounded-lg bg-surface-elevated border border-surface-border text-xs text-ink-secondary hover:text-ink-primary"
-                aria-label="Go to product"
               >
                 Go
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </div>
