@@ -53,6 +53,20 @@ export const listAll = query({
   },
 })
 
+/** Check if a SKU is already taken (pass excludeId when editing) */
+export const checkSkuAvailable = query({
+  args: { sku: v.string(), excludeId: v.optional(v.id('products')) },
+  handler: async (ctx, { sku, excludeId }) => {
+    if (!sku) return true
+    const existing = await ctx.db
+      .query('products')
+      .withIndex('by_sku', (q) => q.eq('sku', sku))
+      .first()
+    if (!existing) return true
+    return existing._id === excludeId
+  },
+})
+
 /** List distinct categories */
 export const listCategories = query({
   args: {},
@@ -91,6 +105,13 @@ export const create = mutation({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== 'owner') throw new Error('Unauthorized')
 
+    // SKU uniqueness check
+    const existing = await ctx.db
+      .query('products')
+      .withIndex('by_sku', (q) => q.eq('sku', args.sku))
+      .first()
+    if (existing) throw new Error(`SKU "${args.sku}" is already in use`)
+
     // Assign sortOrder = max existing + 10 (leaves room for future reordering)
     const allProducts = await ctx.db.query('products').order('asc').collect()
     const maxOrder = allProducts.length > 0
@@ -122,6 +143,29 @@ export const update = mutation({
     if (!userId) throw new Error('Not authenticated')
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== 'owner') throw new Error('Unauthorized')
+
+    // SKU uniqueness check (exclude current product)
+    if (rest.sku !== undefined) {
+      const existing = await ctx.db
+        .query('products')
+        .withIndex('by_sku', (q) => q.eq('sku', rest.sku!))
+        .first()
+      if (existing && existing._id !== productId) {
+        throw new Error(`SKU "${rest.sku}" is already in use`)
+      }
+    }
+
+    // Sort order swap: if another product has the same sortOrder, give it the current product's old value
+    if (rest.sortOrder !== undefined) {
+      const current = await ctx.db.get(productId)
+      const occupant = await ctx.db
+        .query('products')
+        .withIndex('by_sort', (q) => q.eq('sortOrder', rest.sortOrder!))
+        .first()
+      if (occupant && occupant._id !== productId && current) {
+        await ctx.db.patch(occupant._id, { sortOrder: current.sortOrder })
+      }
+    }
 
     const patch: Record<string, unknown> = {}
     for (const [key, val] of Object.entries(rest)) {

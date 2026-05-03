@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
-import { Plus, Eye, EyeOff, Edit2, Package, ClipboardCheck, ClipboardX } from 'lucide-react'
+import { Plus, Eye, EyeOff, Edit2, Package, ClipboardCheck, ClipboardX, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
@@ -31,6 +31,7 @@ export function ProductsPage() {
   const [editProduct, setEditProduct] = useState<ProductDoc | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   // Inline sort order editing: productId → current edit value
+  const [search, setSearch] = useState('')
   const [editingSortId, setEditingSortId] = useState<string | null>(null)
   const [sortEditValue, setSortEditValue] = useState('')
   const sortInputRef = useRef<HTMLInputElement>(null)
@@ -51,7 +52,17 @@ export function ProductsPage() {
 
   if (products === undefined) return <FullPageSpinner />
 
-  const grouped = products.reduce<Record<string, ProductDoc[]>>((acc, p) => {
+  const q = search.trim().toLowerCase()
+  const filtered = q
+    ? products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q)
+      )
+    : products
+
+  const grouped = filtered.reduce<Record<string, ProductDoc[]>>((acc, p) => {
     if (!acc[p.category]) acc[p.category] = []
     acc[p.category].push(p as ProductDoc)
     return acc
@@ -59,7 +70,7 @@ export function ProductsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="font-display italic text-3xl text-ink-primary mb-1">Products</h1>
           <p className="text-sm text-ink-secondary">
@@ -71,10 +82,35 @@ export function ProductsPage() {
         </Button>
       </div>
 
+      {/* Search */}
+      <div className="relative mb-5">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-tertiary pointer-events-none" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, SKU or category…"
+          className="w-full pl-8 pr-8 py-2 text-sm bg-surface-card border border-surface-border rounded-xl text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:border-coral-500/60"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-tertiary hover:text-ink-primary"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
       {products.length === 0 ? (
         <div className="text-center py-16">
           <Package size={40} className="text-surface-muted mx-auto mb-3" />
           <p className="text-sm text-ink-tertiary">No products yet. Add your first product to get started.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16">
+          <Search size={40} className="text-surface-muted mx-auto mb-3" />
+          <p className="text-sm text-ink-tertiary">No products match &ldquo;{search}&rdquo;</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -213,6 +249,12 @@ function ProductFormModal({ open, onClose, product }: ProductFormModalProps) {
   const [unitCost, setUnitCost] = useState(product?.unitCost != null ? String(product.unitCost) : '')
   const [isSaving, setIsSaving] = useState(false)
 
+  const skuAvailable = useQuery(
+    api.products.checkSkuAvailable,
+    open && sku.trim() ? { sku: sku.trim(), excludeId: product?._id } : 'skip'
+  )
+  const skuError = sku.trim() && skuAvailable === false ? 'SKU already in use' : undefined
+
   // Sync form with product whenever open or product changes
   useEffect(() => {
     if (open) {
@@ -244,6 +286,7 @@ function ProductFormModal({ open, onClose, product }: ProductFormModalProps) {
 
   async function handleSubmit() {
     if (!name || !sku || !category) return alert('Name, SKU and category are required')
+    if (skuError) return
     setIsSaving(true)
     try {
       if (product) {
@@ -282,7 +325,16 @@ function ProductFormModal({ open, onClose, product }: ProductFormModalProps) {
       <div className="space-y-4">
         <Input label="Product Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Chocolate Éclair" />
         <div className="grid grid-cols-2 gap-3">
-          <Input label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="e.g. SKU-001" />
+          <div>
+            <Input
+              label="SKU"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              placeholder="e.g. SKU-001"
+              className={skuError ? 'border-red-500 focus:border-red-500' : ''}
+            />
+            {skuError && <p className="text-xs text-red-400 mt-1">{skuError}</p>}
+          </div>
           <Input label="Category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Short Eat" />
         </div>
         <Input
@@ -305,7 +357,7 @@ function ProductFormModal({ open, onClose, product }: ProductFormModalProps) {
         />
         <div className="flex gap-3 pt-2">
           <Button variant="ghost" onClick={onClose} className="flex-1">Cancel</Button>
-          <Button isLoading={isSaving} onClick={() => void handleSubmit()} className="flex-1">
+          <Button isLoading={isSaving} disabled={!!skuError} onClick={() => void handleSubmit()} className="flex-1">
             {product ? 'Save Changes' : 'Add Product'}
           </Button>
         </div>
