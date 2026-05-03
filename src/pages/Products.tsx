@@ -108,12 +108,12 @@ export function ProductsPage() {
                             if (e.key === 'Enter') void commitSortEdit(product)
                             if (e.key === 'Escape') setEditingSortId(null)
                           }}
-                          className="w-12 text-center text-xs font-mono bg-surface-elevated border border-coral-500 rounded-lg px-1 py-1 text-ink-primary focus:outline-none shrink-0"
+                          className="w-9 sm:w-12 text-center text-xs font-mono bg-surface-elevated border border-coral-500 rounded-lg px-1 py-1 text-ink-primary focus:outline-none shrink-0"
                         />
                       ) : (
                         <button
                           onClick={() => startSortEdit(product)}
-                          className="w-12 text-center text-xs font-mono text-ink-tertiary hover:text-ink-primary bg-surface-elevated hover:bg-surface-border rounded-lg px-1 py-1 transition-colors shrink-0"
+                          className="w-9 sm:w-12 text-center text-xs font-mono text-ink-tertiary hover:text-ink-primary bg-surface-elevated hover:bg-surface-border rounded-lg px-1 py-1 transition-colors shrink-0"
                           title="Click to edit sort order"
                         >
                           {product.sortOrder}
@@ -121,8 +121,8 @@ export function ProductsPage() {
                       )
                     )}
 
-                    {/* Image / icon */}
-                    <div className="w-10 h-10 rounded-lg bg-surface-elevated flex items-center justify-center shrink-0 overflow-hidden">
+                    {/* Image / icon — hidden on mobile to save space */}
+                    <div className="hidden sm:flex w-10 h-10 rounded-lg bg-surface-elevated items-center justify-center shrink-0 overflow-hidden">
                       {product.imageServingUrl ?? product.imageUrl ? (
                         <img
                           src={(product.imageServingUrl ?? product.imageUrl)!}
@@ -156,8 +156,8 @@ export function ProductsPage() {
                           title={product.isNotStockTaking ? 'Click to include in stock taking' : 'Click to exclude from stock taking'}
                         >
                           {product.isNotStockTaking
-                            ? <><ClipboardX size={11} />Stock Count</>
-                            : <><ClipboardCheck size={11} />Stock Count</>
+                            ? <><ClipboardX size={11} /><span className="hidden sm:inline">Stock Count</span></>
+                            : <><ClipboardCheck size={11} /><span className="hidden sm:inline">Stock Count</span></>
                           }
                         </button>
                       )}
