@@ -115,6 +115,7 @@ export const update = mutation({
     imageUrl: v.optional(v.string()),
     imageStorageId: v.optional(v.id('_storage')),
     unitCost: v.optional(v.number()),
+    sortOrder: v.optional(v.number()),
   },
   handler: async (ctx, { productId, ...rest }) => {
     const userId = await getAuthUserId(ctx)

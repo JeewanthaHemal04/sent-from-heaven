@@ -194,6 +194,7 @@ export const importMovementsForDate = mutation({
         ),
         id: v.string(),
         total: v.number(),
+        date: v.string(),
         items: v.array(
           v.object({
             name: v.string(),

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
-import { Plus, Eye, EyeOff, Edit2, Package, PackageX } from 'lucide-react'
+import { Plus, Eye, EyeOff, Edit2, Package, ClipboardCheck, ClipboardX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -27,9 +27,28 @@ export function ProductsPage() {
   const products = useQuery(api.products.listAll)
   const toggleActive = useMutation(api.products.toggleActive)
   const toggleNotStockTaking = useMutation(api.products.toggleNotStockTaking)
+  const updateProduct = useMutation(api.products.update)
   const isOwner = useIsOwner()
   const [editProduct, setEditProduct] = useState<ProductDoc | null>(null)
   const [showAdd, setShowAdd] = useState(false)
+  // Inline sort order editing: productId → current edit value
+  const [editingSortId, setEditingSortId] = useState<string | null>(null)
+  const [sortEditValue, setSortEditValue] = useState('')
+  const sortInputRef = useRef<HTMLInputElement>(null)
+
+  function startSortEdit(product: ProductDoc) {
+    setEditingSortId(product._id.toString())
+    setSortEditValue(String(product.sortOrder))
+    setTimeout(() => { sortInputRef.current?.select() }, 0)
+  }
+
+  async function commitSortEdit(product: ProductDoc) {
+    const val = parseInt(sortEditValue, 10)
+    if (!isNaN(val) && val !== product.sortOrder) {
+      await updateProduct({ productId: product._id, sortOrder: val }).catch(() => {})
+    }
+    setEditingSortId(null)
+  }
 
   if (products === undefined) return <FullPageSpinner />
 
@@ -66,7 +85,9 @@ export function ProductsPage() {
                 {category}
               </h3>
               <div className="space-y-1.5">
-                {prods.map((product) => (
+                {prods.map((product) => {
+                  const isEditingSort = editingSortId === product._id.toString()
+                  return (
                   <div
                     key={product._id.toString()}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
@@ -75,6 +96,32 @@ export function ProductsPage() {
                         : 'bg-surface-raised/50 border-surface-border/50 opacity-60'
                     }`}
                   >
+                    {/* Inline sort order */}
+                    {isOwner && (
+                      isEditingSort ? (
+                        <input
+                          ref={sortInputRef}
+                          type="number"
+                          value={sortEditValue}
+                          onChange={(e) => setSortEditValue(e.target.value)}
+                          onBlur={() => void commitSortEdit(product)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void commitSortEdit(product)
+                            if (e.key === 'Escape') setEditingSortId(null)
+                          }}
+                          className="w-12 text-center text-xs font-mono bg-surface-elevated border border-coral-500 rounded-lg px-1 py-1 text-ink-primary focus:outline-none shrink-0"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => startSortEdit(product)}
+                          className="w-12 text-center text-xs font-mono text-ink-tertiary hover:text-ink-primary bg-surface-elevated hover:bg-surface-border rounded-lg px-1 py-1 transition-colors shrink-0"
+                          title="Click to edit sort order"
+                        >
+                          {product.sortOrder}
+                        </button>
+                      )
+                    )}
+
                     {/* Image / icon */}
                     <div className="w-10 h-10 rounded-lg bg-surface-elevated flex items-center justify-center shrink-0 overflow-hidden">
                       {product.imageServingUrl ?? product.imageUrl ? (
@@ -90,14 +137,7 @@ export function ProductsPage() {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="text-sm font-medium text-ink-primary truncate">{product.name}</p>
-                        {product.isNotStockTaking && (
-                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/20 shrink-0">
-                            No Stock Take
-                          </span>
-                        )}
-                      </div>
+                      <p className="text-sm font-medium text-ink-primary truncate">{product.name}</p>
                       <p className="text-xs text-ink-tertiary">
                         {product.sku}
                         {product.unitCost != null && ` · LKR ${product.unitCost}`}
@@ -105,9 +145,23 @@ export function ProductsPage() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={product.isActive ? 'success' : 'default'} size="sm">
-                        {product.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
+                      {/* Stock taking toggle — prominent labeled button */}
+                      {isOwner && (
+                        <button
+                          onClick={() => void toggleNotStockTaking({ productId: product._id })}
+                          className={`flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg border transition-colors ${
+                            product.isNotStockTaking
+                              ? 'bg-surface-elevated border-surface-border text-ink-tertiary hover:border-emerald-500/50 hover:text-emerald-400'
+                              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-surface-elevated hover:border-surface-border hover:text-ink-tertiary'
+                          }`}
+                          title={product.isNotStockTaking ? 'Click to include in stock taking' : 'Click to exclude from stock taking'}
+                        >
+                          {product.isNotStockTaking
+                            ? <><ClipboardX size={11} />Stock Count</>
+                            : <><ClipboardCheck size={11} />Stock Count</>
+                          }
+                        </button>
+                      )}
                       <button
                         onClick={() => setEditProduct(product)}
                         className="p-1.5 rounded-lg text-ink-tertiary hover:text-ink-primary hover:bg-surface-elevated transition-colors"
@@ -122,22 +176,10 @@ export function ProductsPage() {
                       >
                         {product.isActive ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
-                      {isOwner && (
-                        <button
-                          onClick={() => void toggleNotStockTaking({ productId: product._id })}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            product.isNotStockTaking
-                              ? 'text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20'
-                              : 'text-ink-tertiary hover:text-ink-primary hover:bg-surface-elevated'
-                          }`}
-                          title={product.isNotStockTaking ? 'Include in stock taking' : 'Exclude from stock taking'}
-                        >
-                          <PackageX size={14} />
-                        </button>
-                      )}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           ))}
